@@ -1,0 +1,19 @@
+[ {
+  "type" : "record",
+  "name" : "RFIDEvent",
+  "namespace" : "com.roomie.rfid",
+  "fields" : [ {
+    "name" : "rfidId",
+    "type" : {
+      "type" : "string",
+      "avro.java.string" : "String"
+    }
+  }, {
+    "name" : "timeTag",
+    "type" : {
+      "type" : "string",
+      "avro.java.string" : "String"
+    }
+  } ],
+  "classType" : "event"
+} ]

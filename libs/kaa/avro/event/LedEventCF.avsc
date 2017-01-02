@@ -1,0 +1,10 @@
+[ {
+  "type" : "record",
+  "name" : "LedEvent",
+  "namespace" : "com.roomie.led",
+  "fields" : [ {
+    "name" : "isLighted",
+    "type" : "boolean"
+  } ],
+  "classType" : "event"
+} ]
