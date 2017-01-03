@@ -32,15 +32,6 @@
 #include <kaa/event/gen/LedEventCF.hpp>
 #include <kaa/event/gen/MotionEventCF.hpp>
 #include <kaa/event/IFetchEventListeners.hpp>
-#include <string.h>
-#include <syslog.h>
-#include <sys/wait.h>
-#include <signal.h>
-
-#include "bcm2835.h"
-#include "config.c"
-#include "rc522.c"
-#include "rfid.c"
 
 using namespace kaa;
 #define SENSOR RPI_GPIO_P1_07
@@ -49,35 +40,7 @@ using namespace kaa;
 static const char * const RFID_EVENT_FQN = "com.roomie.rfid.RFIDEvent";
 static const char * const MOTION_EVENT_FQN = "com.roomie.motion.MotionEvent";
 static const char * const LED_EVENT_FQN = "com.roomie.led.LedEvent";
-uint8_t HW_init(uint32_t spi_speed, uint8_t gpio);
-void usage(char *);
 
-
-uint8_t HW_init(uint32_t spi_speed, uint8_t gpio) {
-	uint16_t sp;
-
-	sp=(uint16_t)(250000L/spi_speed);
-	if (!bcm2835_init()) {
-		syslog(LOG_DAEMON|LOG_ERR,"Can't init bcm2835!\n");
-		return 1;
-	}
-	if (gpio<28) {
-		bcm2835_gpio_fsel(gpio, BCM2835_GPIO_FSEL_OUTP);
-		bcm2835_gpio_write(gpio, LOW);
-	}
-
-	bcm2835_spi_begin();
-	bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);      // The default
-	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                   // The default
-	bcm2835_spi_setClockDivider(sp); // The default
-	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);                      // The default
-	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, LOW);      // the default
-	return 0;
-}
-
-void usage(char * str) {
-	printf("Usage:\n%s [options]\n\nOptions:\n -d\t Debug mode\n\n",str);
-}
 /*
 class LedEventCFListener: public LedEventCF::LedEventCFListener {
 public:
@@ -154,64 +117,25 @@ public:
     virtual void onEventListenersReceived(const std::vector<std::string>& eventListeners)
     {
 	std::cout<<"Called Event Listeners";
-	std::cout << "Kaa Demo found " << eventListeners.size() << " event listeners" << std::endl;
-	
 	MotionEventCF& motionCF =eventFactory_.getMotionEventCF();
-	RFIDEventCF& rfidCF =eventFactory_.getRFIDEventCF();
 	nsMotionEventCF::MotionEvent motion;
-	nsRFIDEventCF::RFIDEvent rfid;
 
-	uid_t uid;
-	uint8_t SN[10];
-	uint8_t SN_len=0;
-	int tmp,i;
-	char str[255];
-	char *p;
-	char sn_str[23];
-	uint8_t use_gpio=0;
-	uint8_t gpio=255;
-	uint32_t spi_speed=10000000L;
-	uint16_t CType=0;
-	char status;
-
+	if (!bcm2835_init()) {
+	printf("Please run this with sudo\n");
+	
+	}
+	
 	uint8_t state = ACTIVE_VALUE; //Init state to HIGH	
 	bcm2835_gpio_fsel(SENSOR, BCM2835_GPIO_FSEL_INPT);//SENSOR as input
          //bcm2835_gpio_fsel(LED, BCM2835_GPIO_FSEL_OUTP);	   //LED as output
          bcm2835_gpio_set_pud(SENSOR, BCM2835_GPIO_PUD_UP);
-
-       
 	
-	/*HW_init(spi_speed,gpio); 
-	read_conf_uid(&uid);
-	setuid(uid);
-	InitRc522();
-  	*/
-	while(true) {
-	/*
-		status= find_tag(&CType);
-		if (status==TAG_NOTAG) {
-			//usleep(200000);
-			continue;
-		}else if ((status!=TAG_OK)&&(status!=TAG_COLLISION)) {continue;}
-
-		if (select_tag_sn(SN,&SN_len)!=TAG_OK) {continue;}
-		
-		p=sn_str;
-		*(p++)='[';
-		for (tmp=0;tmp<SN_len;tmp++) {
-			sprintf(p,"%02x",SN[tmp]);
-			p+=2;
-		}
-		//for debugging
-		*p=0;
-		fprintf(stderr,"Type: %04x, Serial: %s\n",CType,&sn_str[1]);
-		rfid.rfidId =&sn_str[1];
-		rfidCF.sendEvent(rfid, eventListeners[0]);
-	*/
+	std::cout<<"Prepared to sent message";
         std::cout<<"MessageSent";
 	bool presence;
+	while(true){
 		state = bcm2835_gpio_lev(SENSOR); //HIGH or LOW?
-        	if(state != ACTIVE_VALUE)
+        	if(state == ACTIVE_VALUE)
 		{
 			printf("Movement at %d\n",(int)time(NULL));
 			motion.isPresent=true;
@@ -228,26 +152,12 @@ public:
 		}
 	motionCF.sendEvent(motion, eventListeners[0]);
 	std::cout << "Kaa Demo found " << eventListeners.size() << " event listeners" << std::endl;
-	
-}
-	
-	/*PcdHalt();
-	if (use_gpio) bcm2835_gpio_write(gpio, LOW);
-	
-	
-	
-	
-	
+	}
 	//usleep(5*1000000);
 	
         //EventFamilyFactory& eventFamilyFactory = kaaClient_.getEventFamilyFactory();
-	
-
-	bcm2835_spi_end();
-	bcm2835_close();
-	close_config_file();
       	
-	*/
+	
 
     }
    virtual void onRequestFailed()
@@ -268,14 +178,12 @@ public:
 
     virtual void onAttachSuccess()
     {
-	std::cout << "starting User attached" << std::endl;
 	        //kaaClient_.findEventListeners(std::list<std::string>( {  RFID_EVENT_FQN}),
           //                       std::make_shared<RFIDEventListenersCallback>(kaaClient_.getEventFamilyFactory()));
 	
 	std::list<std::string> FQNs = {MOTION_EVENT_FQN};
 	
- 	//kaaClient_.findEventListeners(FQNs, std::make_shared< MotionEventListenersCallback>(kaaClient_.getEventFamilyFactory()));
-kaaClient_.findEventListeners(FQNs, std::make_shared< MotionEventListenersCallback>(kaaClient_.getEventFamilyFactory()));
+ 	kaaClient_.findEventListeners(FQNs, std::make_shared< MotionEventListenersCallback>(kaaClient_.getEventFamilyFactory()));
 	std::cout << "User attached" << std::endl;
 	
     }
@@ -313,8 +221,7 @@ int main()
    // RFIDEventCFListener thermoListener(kaaClient->getEventFamilyFactory());  
 
    // kaaClient->getEventFamilyFactory().getRFIDEventCF().addEventFamilyListener(thermoListener);
-	std::cout << "--= Press Enter to exit =--" << std::endl;    
-	kaaClient->attachUser(KAA_USER_ID, KAA_USER_ACCESS_TOKEN, std::make_shared<UserAttachCallback>(*kaaClient));
+    kaaClient->attachUser(KAA_USER_ID, KAA_USER_ACCESS_TOKEN, std::make_shared<UserAttachCallback>(*kaaClient));
     /*
      * Wait for the Enter key before exiting.
      */

@@ -26,7 +26,7 @@ set(CMAKE_MODULE_PATH
     )
 
 if(MSVC)   
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -l b2835")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -I/usr/local/include")
 endif()
@@ -67,7 +67,7 @@ set (SAMPLE_SOURCE_FILES
             src/KaaDemo.cpp
 )
 
-add_executable(${APP_NAME} ${SAMPLE_SOURCE_FILES} )
+add_executable(${APP_NAME} ${SAMPLE_SOURCE_FILES})
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     target_link_libraries(${APP_NAME} kaacpp_s ${BOTAN_LIBRARY} ${AVRO_LIBRARIES} ${Boost_LIBRARIES} pthread bcm2835)
